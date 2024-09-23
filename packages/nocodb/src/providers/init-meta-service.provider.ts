@@ -13,6 +13,7 @@ import { User } from '~/models';
 import { NcConfig, prepareEnv } from '~/utils/nc-config';
 import { MetaTable, RootScopes } from '~/utils/globals';
 import { updateMigrationJobsState } from '~/helpers/migrationJobs';
+import initDataSourceEncryption from "~/helpers/initDataSourceEncryption";
 
 export const InitMetaServiceProvider: FactoryProvider = {
   // initialize app,
