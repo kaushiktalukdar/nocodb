@@ -29,6 +29,7 @@ import {
   decryptPropIfRequired,
   deepMerge,
   encryptPropIfRequired,
+  isEncryptionRequired,
   partialExtract,
 } from '~/utils';
 
@@ -51,6 +52,7 @@ export default class Source implements SourceType {
   fk_integration_id?: string;
   integration_config?: string;
   integration_title?: string;
+  is_encrypted?: boolean;
 
   constructor(source: Partial<SourceType>) {
     Object.assign(this, source);
@@ -67,6 +69,7 @@ export default class Source implements SourceType {
       created_at?;
       updated_at?;
       meta?: any;
+      is_encrypted?: any;
     },
     ncMeta = Noco.ncMeta,
   ) {
@@ -84,11 +87,14 @@ export default class Source implements SourceType {
       'is_schema_readonly',
       'is_data_readonly',
       'fk_integration_id',
+      'is_encrypted',
     ]);
 
     insertObj.config = encryptPropIfRequired({
       data: insertObj,
     });
+
+    insertObj.is_encrypted = isEncryptionRequired();
 
     if ('meta' in insertObj) {
       insertObj.meta = stringifyMetaProp(insertObj);
@@ -123,6 +129,7 @@ export default class Source implements SourceType {
       meta?: any;
       deleted?: boolean;
       fk_sql_executor_id?: string;
+      is_encrypted?: boolean;
     },
     ncMeta = Noco.ncMeta,
   ) {
@@ -145,12 +152,14 @@ export default class Source implements SourceType {
       'is_schema_readonly',
       'is_data_readonly',
       'fk_integration_id',
+      'is_encrypted',
     ]);
 
     if (updateObj.config) {
       updateObj.config = encryptPropIfRequired({
         data: updateObj,
       });
+      updateObj.is_encrypted = isEncryptionRequired();
     }
 
     // type property is undefined even if not provided
@@ -223,7 +232,9 @@ export default class Source implements SourceType {
     args: { baseId: string },
     ncMeta = Noco.ncMeta,
   ): Promise<Source[]> {
-    const cachedList = await NocoCache.getList(CacheScope.SOURCE, [args.baseId]);
+    const cachedList = await NocoCache.getList(CacheScope.SOURCE, [
+      args.baseId,
+    ]);
     let { list: sourceDataList } = cachedList;
     const { isNoneList } = cachedList;
     if (!isNoneList && !sourceDataList.length) {
