@@ -61,7 +61,10 @@ export class OrgTokensController {
     // allowedRoles: [OrgUserRoles.SUPER],
     blockApiTokenAccess: true,
   })
-  async apiTokenDelete(@Req() req: NcRequest, @Param('token') token: string) {
+  async apiTokenDelete(
+    @Req() req: NcRequest,
+    @Param('tokenId') tokenId: string,
+  ) {
     await this.orgTokensService.apiTokenDelete({
       token,
       user: req['user'],
