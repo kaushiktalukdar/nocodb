@@ -26,6 +26,12 @@ import { JobsRedis } from '~/modules/jobs/redis/jobs-redis';
 import { InstanceCommands } from '~/interface/Jobs';
 import { deepMerge, partialExtract } from '~/utils';
 import View from '~/models/View';
+import {
+  decryptPropIfRequired,
+  deepMerge,
+  encryptPropIfRequired,
+  partialExtract,
+} from '~/utils';
 
 export default class Source implements SourceType {
   id?: string;
@@ -81,10 +87,9 @@ export default class Source implements SourceType {
       'fk_integration_id',
     ]);
 
-    insertObj.config = CryptoJS.AES.encrypt(
-      JSON.stringify(source.config),
-      Noco.getConfig()?.auth?.jwt?.secret,
-    ).toString();
+    insertObj.config = await encryptPropIfRequired({
+      data: insertObj,
+    });
 
     if ('meta' in insertObj) {
       insertObj.meta = stringifyMetaProp(insertObj);
@@ -144,10 +149,9 @@ export default class Source implements SourceType {
     ]);
 
     if (updateObj.config) {
-      updateObj.config = CryptoJS.AES.encrypt(
-        JSON.stringify(source.config),
-        Noco.getConfig()?.auth?.jwt?.secret,
-      ).toString();
+      updateObj.config = await encryptPropIfRequired({
+        data: updateObj,
+      });
     }
 
     // type property is undefined even if not provided
@@ -319,10 +323,9 @@ export default class Source implements SourceType {
     }
 
     const config = JSON.parse(
-      CryptoJS.AES.decrypt(
-        this.config,
-        Noco.getConfig()?.auth?.jwt?.secret,
-      ).toString(CryptoJS.enc.Utf8),
+      decryptPropIfRequired({
+        data: this,
+      }),
     );
 
     if (skipIntegrationConfig) {
@@ -334,10 +337,10 @@ export default class Source implements SourceType {
     }
 
     const integrationConfig = JSON.parse(
-      CryptoJS.AES.decrypt(
-        this.integration_config,
-        Noco.getConfig()?.auth?.jwt?.secret,
-      ).toString(CryptoJS.enc.Utf8),
+      decryptPropIfRequired({
+        data: this,
+        prop: 'integration_config',
+      }),
     );
     // merge integration config with source config
     // override integration config with source config if exists
