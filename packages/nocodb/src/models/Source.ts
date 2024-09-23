@@ -94,23 +94,23 @@ export default class Source implements SourceType {
       insertObj.meta = stringifyMetaProp(insertObj);
     }
 
-    insertObj.order = await ncMeta.metaGetNextOrder(MetaTable.BASES, {
+    insertObj.order = await ncMeta.metaGetNextOrder(MetaTable.SOURCES, {
       base_id: source.baseId,
     });
 
     const { id } = await ncMeta.metaInsert2(
       context.workspace_id,
       context.base_id,
-      MetaTable.BASES,
+      MetaTable.SOURCES,
       insertObj,
     );
 
     const returnBase = await this.get(context, id, false, ncMeta);
 
     await NocoCache.appendToList(
-      CacheScope.BASE,
+      CacheScope.SOURCE,
       [source.baseId],
-      `${CacheScope.BASE}:${id}`,
+      `${CacheScope.SOURCE}:${id}`,
     );
 
     return returnBase;
@@ -164,7 +164,7 @@ export default class Source implements SourceType {
 
     // if order is missing (possible in old versions), get next order
     if (!oldSource.order && !updateObj.order) {
-      updateObj.order = await ncMeta.metaGetNextOrder(MetaTable.BASES, {
+      updateObj.order = await ncMeta.metaGetNextOrder(MetaTable.SOURCES, {
         base_id: oldSource.base_id,
       });
 
@@ -186,7 +186,7 @@ export default class Source implements SourceType {
 
       // if order is 1 for non-default source, move it to last
       if (oldSource.order <= 1 && !updateObj.order) {
-        updateObj.order = await ncMeta.metaGetNextOrder(MetaTable.BASES, {
+        updateObj.order = await ncMeta.metaGetNextOrder(MetaTable.SOURCES, {
           base_id: oldSource.base_id,
         });
       }
@@ -195,13 +195,13 @@ export default class Source implements SourceType {
     await ncMeta.metaUpdate(
       context.workspace_id,
       context.base_id,
-      MetaTable.BASES,
+      MetaTable.SOURCES,
       prepareForDb(updateObj),
       oldSource.id,
     );
 
     await NocoCache.update(
-      `${CacheScope.BASE}:${sourceId}`,
+      `${CacheScope.SOURCE}:${sourceId}`,
       prepareForResponse(updateObj),
     );
 
@@ -223,20 +223,20 @@ export default class Source implements SourceType {
     args: { baseId: string },
     ncMeta = Noco.ncMeta,
   ): Promise<Source[]> {
-    const cachedList = await NocoCache.getList(CacheScope.BASE, [args.baseId]);
+    const cachedList = await NocoCache.getList(CacheScope.SOURCE, [args.baseId]);
     let { list: sourceDataList } = cachedList;
     const { isNoneList } = cachedList;
     if (!isNoneList && !sourceDataList.length) {
       const qb = ncMeta
-        .knex(MetaTable.BASES)
-        .select(`${MetaTable.BASES}.*`)
-        .where(`${MetaTable.BASES}.base_id`, context.base_id)
+        .knex(MetaTable.SOURCES)
+        .select(`${MetaTable.SOURCES}.*`)
+        .where(`${MetaTable.SOURCES}.base_id`, context.base_id)
         .where((whereQb) => {
           whereQb
-            .where(`${MetaTable.BASES}.deleted`, false)
-            .orWhereNull(`${MetaTable.BASES}.deleted`);
+            .where(`${MetaTable.SOURCES}.deleted`, false)
+            .orWhereNull(`${MetaTable.SOURCES}.deleted`);
         })
-        .orderBy(`${MetaTable.BASES}.order`, 'asc');
+        .orderBy(`${MetaTable.SOURCES}.order`, 'asc');
 
       this.extendQb(qb, context);
 
@@ -247,7 +247,7 @@ export default class Source implements SourceType {
         source.meta = parseMetaProp(source, 'meta');
       }
 
-      await NocoCache.setList(CacheScope.BASE, [args.baseId], sourceDataList);
+      await NocoCache.setList(CacheScope.SOURCE, [args.baseId], sourceDataList);
     }
 
     sourceDataList.sort(
@@ -268,23 +268,23 @@ export default class Source implements SourceType {
     let sourceData =
       id &&
       (await NocoCache.get(
-        `${CacheScope.BASE}:${id}`,
+        `${CacheScope.SOURCE}:${id}`,
         CacheGetType.TYPE_OBJECT,
       ));
     if (!sourceData) {
       const qb = ncMeta
-        .knex(MetaTable.BASES)
-        .select(`${MetaTable.BASES}.*`)
-        .where(`${MetaTable.BASES}.id`, id)
-        .where(`${MetaTable.BASES}.base_id`, context.base_id);
+        .knex(MetaTable.SOURCES)
+        .select(`${MetaTable.SOURCES}.*`)
+        .where(`${MetaTable.SOURCES}.id`, id)
+        .where(`${MetaTable.SOURCES}.base_id`, context.base_id);
 
       this.extendQb(qb, context);
 
       if (!force) {
         qb.where((whereQb) => {
           whereQb
-            .where(`${MetaTable.BASES}.deleted`, false)
-            .orWhereNull(`${MetaTable.BASES}.deleted`);
+            .where(`${MetaTable.SOURCES}.deleted`, false)
+            .orWhereNull(`${MetaTable.SOURCES}.deleted`);
         });
       }
 
@@ -294,7 +294,7 @@ export default class Source implements SourceType {
         sourceData.meta = parseMetaProp(sourceData, 'meta');
       }
 
-      await NocoCache.set(`${CacheScope.BASE}:${id}`, sourceData);
+      await NocoCache.set(`${CacheScope.SOURCE}:${id}`, sourceData);
     }
     return this.castType(sourceData);
   }
@@ -465,12 +465,12 @@ export default class Source implements SourceType {
     const res = await ncMeta.metaDelete(
       context.workspace_id,
       context.base_id,
-      MetaTable.BASES,
+      MetaTable.SOURCES,
       this.id,
     );
 
     await NocoCache.deepDel(
-      `${CacheScope.BASE}:${this.id}`,
+      `${CacheScope.SOURCE}:${this.id}`,
       CacheDelDirection.CHILD_TO_PARENT,
     );
 
@@ -495,7 +495,7 @@ export default class Source implements SourceType {
     await Source.update(context, this.id, { deleted: true }, ncMeta);
 
     await NocoCache.deepDel(
-      `${CacheScope.BASE}:${this.id}`,
+      `${CacheScope.SOURCE}:${this.id}`,
       CacheDelDirection.CHILD_TO_PARENT,
     );
   }
@@ -517,14 +517,14 @@ export default class Source implements SourceType {
       await ncMeta.metaUpdate(
         context.workspace_id,
         context.base_id,
-        MetaTable.BASES,
+        MetaTable.SOURCES,
         {
           erd_uuid: this.erd_uuid,
         },
         this.id,
       );
 
-      await NocoCache.update(`${CacheScope.BASE}:${this.id}`, {
+      await NocoCache.update(`${CacheScope.SOURCE}:${this.id}`, {
         erd_uuid: this.erd_uuid,
       });
     }
@@ -539,14 +539,14 @@ export default class Source implements SourceType {
       await ncMeta.metaUpdate(
         context.workspace_id,
         context.base_id,
-        MetaTable.BASES,
+        MetaTable.SOURCES,
         {
           erd_uuid: this.erd_uuid,
         },
         this.id,
       );
 
-      await NocoCache.update(`${CacheScope.BASE}:${this.id}`, {
+      await NocoCache.update(`${CacheScope.SOURCE}:${this.id}`, {
         erd_uuid: this.erd_uuid,
       });
     }
@@ -570,7 +570,7 @@ export default class Source implements SourceType {
       `${MetaTable.INTEGRATIONS}.title as integration_title`,
     ).leftJoin(
       MetaTable.INTEGRATIONS,
-      `${MetaTable.BASES}.fk_integration_id`,
+      `${MetaTable.SOURCES}.fk_integration_id`,
       `${MetaTable.INTEGRATIONS}.id`,
     );
   }
